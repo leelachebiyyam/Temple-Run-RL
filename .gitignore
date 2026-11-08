@@ -1,0 +1,40 @@
+# --- Proprietary / extracted game data (never commit) ---
+recon/
+resources/templerun2/
+resources/*/data/
+migration/
+magictiles/
+ninjump/
+brotato/
+
+# --- Build outputs, binaries and downloaded dependencies ---
+build/
+puffer
+templerun2
+raylib*/
+box2d*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# --- Model checkpoints, weights and training artifacts ---
+checkpoints/
+logs/
+logs_release/
+wandb/
+*.bin
+*.pth
+*.ckpt
+
+# --- Secrets and local config ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- Editor / OS ---
+.DS_Store
+__pycache__/
+*.py[cod]
