@@ -43,8 +43,8 @@ trainer's `[-1, 1]` clipping range:
 | Swipe / gesture | `swipe_cost` | `0.0` |
 
 The clear/coin scale preserves an intended **8:1** death-to-clear ratio. **There is no
-penalty for swiping itself** (`swipe_cost = 0`); the agent is only penalised for dying and
-rewarded for clearing obstacles and collecting coins. Distance, powerups and turns affect
+penalty for swiping itself** (`swipe_cost = 0`); deaths and collisions are penalised,
+while obstacle clears and coin pickups are rewarded. Distance, powerups and turns affect
 the in-game *score* but add no RL reward. Values live in `config/templerun2.ini`.
 
 ## Requirements
@@ -72,7 +72,7 @@ The Metal path does not require CUDA, TensorFlow or PyTorch.
 ./puffer train
 
 # Interactive raylib playback/standalone -> ./build/cpu_templerun2 (needs assets for visuals)
-./build.sh templerun2 --cpu
+./build.sh templerun2 build/cpu_templerun2 --cpu
 ```
 
 Evaluation can select the highest-probability legal action instead of sampling with
@@ -105,11 +105,11 @@ extracted data (`recon/...`). No such data is committed.
 
 ## Demo video and narration script
 
-A short silent gameplay capture and a narration script are provided for the hackathon:
-see `DEMO_SCRIPT.md` for the script. The encoded demo MP4 is published as a release
-asset on this repository's **Releases** page:
-<https://github.com/leelachebiyyam/Temple-Run-RL/releases> (a release is added after
-publication).
+The [75-second gameplay video and screenshots](https://github.com/leelachebiyyam/Temple-Run-RL/releases/tag/hackathon-demo)
+show the actual agent, without manual controls or scripted obstacle avoidance.
+Download the [MP4](https://github.com/leelachebiyyam/Temple-Run-RL/releases/download/hackathon-demo/Temple-Run-RL-demo.mp4)
+and see [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for a short narration you can record yourself.
+The clip is silent, runs at normal speed, and includes the policy's mistakes.
 
 ## Repository layout
 

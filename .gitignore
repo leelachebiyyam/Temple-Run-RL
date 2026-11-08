@@ -10,7 +10,7 @@ brotato/
 # --- Build outputs, binaries and downloaded dependencies ---
 build/
 puffer
-templerun2
+/templerun2
 raylib*/
 box2d*/
 *.o
