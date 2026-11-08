@@ -77,7 +77,7 @@ static float tr2_r_path_yaw(Env* env, float s) {
 
 /* Animation-state labels passed to tr2_character_draw.  When the character
  * header is present its own values are used; otherwise this fallback mirrors
- * them (RUN=0, JUMP=1, SLIDE=2, IDLE=3, FALL=4, DEAD=5). */
+ * them (RUN=0, JUMP=1, SLIDE=2, IDLE=3, FALL=4, DEAD=5, ZIPLINE=6). */
 #ifndef TR2_CHAR_STATE_RUN
 #define TR2_CHAR_STATE_RUN   0
 #define TR2_CHAR_STATE_JUMP  1
@@ -85,6 +85,7 @@ static float tr2_r_path_yaw(Env* env, float s) {
 #define TR2_CHAR_STATE_IDLE  3
 #define TR2_CHAR_STATE_FALL  4
 #define TR2_CHAR_STATE_DEAD  5
+#define TR2_CHAR_STATE_ZIPLINE 6
 #endif
 
 /* Game-derived backdrop/materials (exported from the APK by UnityPy). */
@@ -663,6 +664,9 @@ static void tr2_r_draw_obstacles(Env* env, int first, int last) {
         if (owner >= first && owner <= last) {
             Tr2Segment* seg = &env->segments[owner % TR2_SEG_RING];
             int vi = seg->var_idx;
+            /* WaterSlide prefabs bake their duck/blocked-lane geometry into
+             * the flume mesh; a generic primitive overlay would be wrong. */
+            if (seg->valid && seg->mode == TR2_MODE_WATER) continue;
             if (seg->valid && vi >= 0 && vi < TR2_R_MODEL_SLOTS &&
                     tr2_r_models[vi].state == 1) {
                 const char* name = TR2_VARIATION_TABLE[vi].name;
@@ -798,6 +802,8 @@ static const char* tr2_r_death_name(int cause) {
 /* Character state + animation clock handed to tr2_character_draw. */
 static int tr2_r_char_state(Env* env) {
     if (env->dead) return TR2_CHAR_STATE_DEAD;
+    if (env->mode == TR2_MODE_ZIPLINE) return TR2_CHAR_STATE_ZIPLINE;
+    if (env->mode == TR2_MODE_WATER) return TR2_CHAR_STATE_SLIDE;
     if (env->sliding) return TR2_CHAR_STATE_SLIDE;
     if (env->mode == TR2_MODE_FALLING) return TR2_CHAR_STATE_FALL;
     if (!env->grounded) return TR2_CHAR_STATE_JUMP;
@@ -904,8 +910,9 @@ static void tr2_r_draw_player(Env* env) {
             90.0f, (Color){230, 80, 80, 90});
     }
     if (env->mode == TR2_MODE_ZIPLINE) {
-        DrawLine3D((Vector3){wx, wy + 1.9f, wz},
-            (Vector3){wx + fx * 6.0f, wy + 3.2f, wz + fz * 6.0f},
+        /* The runner hangs below the rope; draw it through the hand line. */
+        DrawLine3D((Vector3){wx - fx * 3.0f, wy + 1.55f, wz - fz * 3.0f},
+            (Vector3){wx + fx * 12.0f, wy + 1.75f, wz + fz * 12.0f},
             (Color){70, 55, 40, 255});
     }
 }

@@ -1162,10 +1162,113 @@ static void test_water_jump_entry(void) {
     printf("ok water rising entry, continuous overlap and descending re-entry\n");
 }
 
+/* A zipline is caught by jumping; walking into it misses the rope and falls.
+ * While attached the runner hangs at rope height instead of running on air. */
+static void test_zipline_grab_and_hang(void) {
+    float walked_reward = 0.0f, walked_terminal = 0.0f;
+    float air_reward = 0.0f, air_terminal = 0.0f;
+    Env walked = {0};
+    walked.agents[0].rewards = &walked_reward;
+    walked.agents[0].terminals = &walked_terminal;
+    walked.seg_gen = 0;
+    walked.segments[0].valid = 1;
+    walked.segments[0].mode = TR2_MODE_ZIPLINE;
+    walked.segments[0].length = 30.0f;
+    walked.seg_idx = 0;
+    walked.enable_submodes = 1;
+    walked.grounded = 1;
+    tr2_runner_apply_mode(&walked);
+    assert(walked.dead && walked.death_cause == TR2_DEATH_FALL);
+
+    Env air = {0};
+    air.agents[0].rewards = &air_reward;
+    air.agents[0].terminals = &air_terminal;
+    air.seg_gen = 0;
+    air.segments[0].valid = 1;
+    air.segments[0].mode = TR2_MODE_ZIPLINE;
+    air.segments[0].length = 30.0f;
+    air.seg_idx = 0;
+    air.enable_submodes = 1;
+    air.grounded = 0;
+    air.y = 0.6f;
+    air.vy = 2.0f;
+    air.lane = TR2_CENTER_LANE;
+    air.target_lane = TR2_CENTER_LANE;
+    air.speed = 10.0f;
+    air.min_speed = 10.0f;
+    air.max_speed = 21.0f;
+    air.agents[0].actions = NULL;   /* idle every frame */
+    tr2_runner_apply_mode(&air);
+    assert(!air.dead && air.mode == TR2_MODE_ZIPLINE);
+    assert(fabsf(air.y - TR2_RUNNER_ZIPLINE_HANG) < 1e-6f);
+    for (int i = 0; i < 30; i++) {
+        tr2_runner_step(&air);
+        assert(!air.dead);
+        assert(fabsf(air.y - TR2_RUNNER_ZIPLINE_HANG) < 1e-6f);
+    }
+    printf("ok zipline needs an airborne grab and hangs at rope height\n");
+}
+
+/* WaterSlide duck obstacles sit just above the flume.  The prone water pose
+ * clears them only while the duck gesture is held; standing hits them. */
+static void test_water_duck_under(void) {
+    for (int duck = 0; duck < 2; ++duck) {
+        Harness h;
+        harness_init(&h, 7);
+        clear_all(&h);
+        Tr2Obstacle* o = &h.env.obstacles[0];
+        memset(o, 0, sizeof(*o));
+        o->s = h.env.s + 0.4f;
+        o->length = 1.0f;
+        o->lane = 0.0f;
+        o->half_width = 1.4f;
+        o->y_bottom = 0.228f;
+        o->y_top = 1.333f;
+        o->kind = TR2_OBST_HIGH;
+        o->active = 1;
+        h.env.mode = TR2_MODE_WATER;
+        h.env.grounded = 1;
+        h.env.sliding = duck;
+        tr2_collision_step(&h.env, h.env.s);
+        if (duck) assert(!h.env.dead);
+        else assert(h.env.dead);
+    }
+    printf("ok water slide ducks under flume obstacles, standing hits\n");
+}
+
+/* A WaterSlide runs entrance -> 2..5 middle flume pieces -> exit, so short
+ * slides and long rivers both occur instead of isolated one-piece splashes. */
+static void test_water_slide_chain(void) {
+    Env env = {0};
+    env.rng = 5;
+    env.enable_submodes = 1;
+    env.speed = 10.0f;
+    env.min_speed = 10.0f;
+    env.max_speed = 21.0f;
+    tr2_track_reset(&env);
+    memset(env.segments, 0, sizeof(env.segments));
+    env.seg_gen = -1;
+    env.seg_idx = 0;
+    env.water_run_left = 3;
+    tr2_track_generate(&env);
+    for (int i = 0; i < 3; ++i) {
+        const Tr2Segment* s = &env.segments[i % TR2_SEG_RING];
+        assert(s->valid && s->mode == TR2_MODE_WATER);
+        assert(s->piece_idx != TR2_PIECE_WATERSLIDE_ENTER);
+        assert(s->piece_idx != TR2_PIECE_WATERSLIDE_EXIT);
+    }
+    assert(env.segments[3 % TR2_SEG_RING].piece_idx
+            == TR2_PIECE_WATERSLIDE_EXIT);
+    printf("ok waterslide chains middle flume pieces before the exit\n");
+}
+
 int main(void) {
     test_obs_contract();
     test_obstacle_geometry_observation();
     test_water_jump_entry();
+    test_zipline_grab_and_hang();
+    test_water_duck_under();
+    test_water_slide_chain();
     test_determinism();
     test_swipe_decision_interval();
     test_gap_generation_reachability();

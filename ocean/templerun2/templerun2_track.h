@@ -313,6 +313,40 @@ static int tr2_tk_choose_piece(Env* env, int cat, float s) {
     return -1;
 }
 
+/* WaterSlide run: the shipped entrance (pool piece 69) and exit (70) bracket a
+ * randomised chain of flume pieces.  Middle pieces are drawn from the Zone-3
+ * pool by their shipped SelectionOdds, so short slides and long rivers with
+ * duck/blocked-lane sections both occur. */
+#define TR2_PIECE_WATERSLIDE_ENTER 69
+#define TR2_PIECE_WATERSLIDE_EXIT  70
+
+static int tr2_tk_choose_water(Env* env, int exit_due) {
+    if (exit_due) return TR2_PIECE_WATERSLIDE_EXIT;
+    int count = 0;
+    const Tr2PieceEntry* pool = tr2_piece_pool(3, &count);
+    const Tr2PieceEntry* cand[32];
+    int nc = 0;
+    for (int i = 0; i < count && nc < 32; i++) {
+        int p = pool[i].piece_idx;
+        if (p == TR2_PIECE_WATERSLIDE_ENTER
+                || p == TR2_PIECE_WATERSLIDE_EXIT) continue;
+        if (pool[i].odds <= 0.0f) continue;
+        if (!tr2_tk_playable_variations(env, p,
+                tr2_piece_variation_count(p))) continue;
+        cand[nc++] = &pool[i];
+    }
+    if (nc == 0) return -1;
+    float total = 0.0f;
+    for (int i = 0; i < nc; i++) total += cand[i]->odds;
+    float r = tr2_tk_rand(env) * total;
+    float acc = 0.0f;
+    for (int i = 0; i < nc; i++) {
+        acc += cand[i]->odds;
+        if (r < acc) return cand[i]->piece_idx;
+    }
+    return cand[nc - 1]->piece_idx;
+}
+
 /* Shipped GetVariation weights frequencies and excludes the last choice for
  * that piece. Some extracted multi-variation records have no positive
  * frequencies; pick uniformly among the remaining variations in that case. */
@@ -425,6 +459,7 @@ static void tr2_track_reset(Env* env) {
     env->seg_idx = 0;
     env->seg_gen = -1;
     env->piece_count = 0;
+    env->water_run_left = -1;
     env->turn_acc = 0.0f;
     env->obstacle_acc = 0.0f;
 
@@ -489,7 +524,14 @@ static void tr2_track_generate(Env* env) {
                 && tr2_tk_rand(env) < 0.05f) {
             cat = TR2_CAT_SUBMODE;
         }
-        int pidx = tr2_tk_choose_piece(env, cat, seg->s0);
+        int pidx = -1;
+        if (env->water_run_left >= 0) {
+            int exit_due = env->water_run_left == 0;
+            pidx = tr2_tk_choose_water(env, exit_due);
+            if (pidx >= 0)
+                env->water_run_left = exit_due ? -1 : env->water_run_left - 1;
+        }
+        if (pidx < 0) pidx = tr2_tk_choose_piece(env, cat, seg->s0);
         if (pidx < 0 && cat != TR2_CAT_STRAIGHT) {
             pidx = tr2_tk_choose_piece(env, TR2_CAT_STRAIGHT, seg->s0);
         }
@@ -510,6 +552,12 @@ static void tr2_track_generate(Env* env) {
             seg->entity_spawned = 0;
         } else {
             tr2_tk_apply_piece(env, seg, pidx);
+            if (env->enable_submodes
+                    && seg->piece_idx == TR2_PIECE_WATERSLIDE_ENTER
+                    && env->water_run_left < 0) {
+                /* 2..5 middle flume pieces, then the authored exit piece. */
+                env->water_run_left = 2 + tr2_tk_rand_int(env, 4);
+            }
         }
 
         env->turn_acc += seg->length;
@@ -654,8 +702,8 @@ static void tr2_tk_spawn_piece(Env* env, Tr2Segment* seg, int with_coins,
         int kind = vol->kind;
         if (kind == TR2_VK_MINE_DUCK) kind = TR2_OBST_HIGH;
         else if (kind == TR2_VK_WATER) kind = TR2_OBST_WATER;
-        else if (kind == TR2_VK_MINE_WALL
-                || kind == TR2_VK_WATER_BLOCK) kind = TR2_OBST_BLOCK;
+        else if (kind == TR2_VK_WATER_BLOCK) kind = TR2_OBST_HIGH;
+        else if (kind == TR2_VK_MINE_WALL) kind = TR2_OBST_BLOCK;
         /* A few authored rows sit behind the prefab origin
          * (mine_duck_b, forest_junction_b): clamp those into the piece
          * frame.  Positive offsets are left in place: turn/junction GAP and

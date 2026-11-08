@@ -37,6 +37,17 @@ pacing tables and trigger volumes.
   exists. Full-width pits are deferred until their rim/FallSaver is reachable
   at the current speed, including decision-timing margin. Sub-mode pieces
   come from the MineCart/WaterSlide/Forest pools.
+- **WaterSlide:** the shipped entrance and exit bracket a random chain of 2–5
+  flume pieces, so runs range from short slides to long rivers. The runner is
+  shown lying on the flume; lateral swipes move between lanes and the
+  duck/swipe-down gesture lowers the pose under the authored water-block
+  volumes. Standing through one hits it. Jumping cancels the duck, matching
+  `Jump() -> StopUnderWaterSliding`.
+- **Zipline:** the rope must be caught with a jump. A grounded runner that
+  reaches the zipline piece misses the rope and falls; an airborne runner
+  attaches at rope height, hangs with the shipped `ZiplineIdle01` clip, and
+  drops under gravity when the piece ends. Lane, jump and slide are disabled
+  while attached.
 - **Pacing:** exact Machu (RegionID 100) 8-milestone table: obstacle spacing
   10–20 → 0–2.5, turns 25–50 → 5–25, coins 80–40, double obstacles 0–0.20.
 - **Runner:** speed 10→21, force buckets `30/10/1.5/0.5 × 0.1`, ground gravity

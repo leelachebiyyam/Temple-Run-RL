@@ -65,9 +65,10 @@
 #define TR2_CHAR_STATE_IDLE  3
 #define TR2_CHAR_STATE_FALL  4
 #define TR2_CHAR_STATE_DEAD  5
+#define TR2_CHAR_STATE_ZIPLINE 6
 #endif
 #ifndef TR2_CHAR_STATE_COUNT
-#define TR2_CHAR_STATE_COUNT 6
+#define TR2_CHAR_STATE_COUNT 7
 #endif
 
 #define TR2_CHAR_DIR   "resources/templerun2/character/"
@@ -88,6 +89,7 @@ static const char* const tr2_char_clip_names[TR2_CHAR_STATE_COUNT][4] = {
     {"idle",  "stand", "breath", NULL},
     {"fall",  "drop",  "air",    NULL},
     {"death", "die",   "dead",   NULL},
+    {"zipline", "zipline_idle", "hang", NULL},
 };
 
 typedef struct {
@@ -273,7 +275,8 @@ static void tr2_character_init(void) {
 static int tr2_char_anim_frame(int state, float t, float fps, int frames) {
     if (frames <= 0) return 0;
     if (!(fps > 0.0f)) fps = TR2_CHAR_DEFAULT_FPS;
-    if (state != TR2_CHAR_STATE_RUN && state != TR2_CHAR_STATE_IDLE) {
+    if (state != TR2_CHAR_STATE_RUN && state != TR2_CHAR_STATE_IDLE
+            && state != TR2_CHAR_STATE_ZIPLINE) {
         int f = t > 0.0f ? (int)(t * fps) : 0;
         return f >= frames ? frames - 1 : f;
     }

@@ -84,6 +84,12 @@
  * the stamp is >= 0. */
 #define TR2_COL_LAST_JUMP_LAND_INIT (-4.0f)
 
+/* In a WaterSlide the runner lies on the flume.  Holding the duck/swipe-down
+ * gesture goes lower again, under the shipped water-block volumes whose
+ * lowest face is 0.228 m above the local flume frame.  A standing runner still
+ * hits them, so the duck input remains required. */
+#define TR2_COL_WATER_DUCK_TOP 0.20f
+
 /* One physics frame.  TR2_RUNNER_DT is the same value, but templerun2_runner.h
  * is included *after* this header, so the clock is spelled out here. */
 #define TR2_COL_DT (1.0f / 60.0f)
@@ -238,7 +244,10 @@ static void tr2_collision_reset(Env* env) {
 static void tr2_collision_step(Env* env, float prev_s) {
     /* Runner pose span, in the local track frame (see header comment). */
     int ducking = env->sliding && env->grounded;
-    float top = env->y + (ducking ? env->slide_height : env->player_height);
+    float pose_top = ducking ? env->slide_height : env->player_height;
+    if (ducking && env->mode == TR2_MODE_WATER)
+        pose_top = TR2_COL_WATER_DUCK_TOP;
+    float top = env->y + pose_top;
     float bottom = top - 2.0f * env->player_radius;
 
     /* Support under the runner this frame: solid track unless a GAP pit below

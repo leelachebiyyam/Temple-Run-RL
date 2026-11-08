@@ -292,6 +292,7 @@ struct Env {
     int seg_idx;
     int seg_gen;
     int piece_count;
+    int water_run_left; /* -1 idle, 0 exit due, >0 middle pieces remaining */
     uint8_t last_variation[TR2_PIECE_COUNT]; /* local index + 1; 0 = unseen */
     float turn_acc;
     float obstacle_acc;

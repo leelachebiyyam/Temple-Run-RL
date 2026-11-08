@@ -35,6 +35,11 @@
 /* TRRunnerPawn prefab MaxJumpVelocity=10 / MinJumpVelocity=8 (PLAYER.md §8). */
 #define TR2_RUNNER_JUMP_MIN 8.0f
 
+/* Height of the runner's root below the zipline rope while hanging.  The rope
+ * itself is drawn by the renderer; physics keeps the runner attached at this
+ * clearance until the zipline piece ends, then normal gravity drops it. */
+#define TR2_RUNNER_ZIPLINE_HANG 1.70f
+
 /* A buffered turn command stays valid this far past the piece boundary (m). */
 #define TR2_RUNNER_TURN_GRACE 1.0f
 
@@ -141,6 +146,18 @@ static void tr2_runner_apply_mode(Env* env) {
     if (want != env->mode) {
         env->mode = want;
         env->mode_timer = 0.0f;
+        if (want == TR2_MODE_ZIPLINE) {
+            /* Jump() to catch the rope: the shipped zipline attach only
+             * happens while airborne.  A grounded runner that walks into the
+             * zipline piece misses the rope and falls. */
+            if (env->grounded) {
+                tr2_collision_fall(env, TR2_DEATH_FALL);
+                return;
+            }
+            env->y = TR2_RUNNER_ZIPLINE_HANG;
+            env->vy = 0.0f;
+            env->grounded = 0;
+        }
         if (want != TR2_MODE_RUNNING && want != TR2_MODE_FALLING) {
             float remain = seg->s0 + seg->length - env->s;
             float v = env->speed > env->min_speed ? env->speed : env->min_speed;
@@ -340,6 +357,7 @@ static void tr2_runner_step(Env* env) {
 
     /* --- sub-mode from the piece under the runner --------------------- */
     tr2_runner_apply_mode(env);
+    if (env->dead) return;
 
     /* --- force -> speed (PlayerVelocity integration) ------------------ */
     if (env->grounded && !env->sliding && env->mode != TR2_MODE_ZIPLINE) {
@@ -391,7 +409,12 @@ static void tr2_runner_step(Env* env) {
 
     /* The ground can drop away inside a gap. Do not clamp a falling runner
      * back onto the track plane; land only while crossing real support. */
-    if (env->grounded) {
+    if (env->mode == TR2_MODE_ZIPLINE) {
+        /* Attached to the rope: no gravity until the piece ends. */
+        env->y = TR2_RUNNER_ZIPLINE_HANG;
+        env->vy = 0.0f;
+        env->grounded = 0;
+    } else if (env->grounded) {
         if (env->y > env->floor_y) {
             env->grounded = 0;
             env->vy = 0.0f;
