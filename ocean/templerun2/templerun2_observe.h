@@ -17,7 +17,7 @@
  *       5 slide_timer             / slide_duration_cap, 0..1
  *       6 speed                   / max_speed, 0..1
  *       7 s                       / 5000, 0..1
- *       8 score                   / 5000, 0..1
+ *       8 score                   / 100000, 0..1
  *       9 coins                   / 200, 0..1
  *      10 multiplier              / multiplier_max, 0..1
  *      11 magnet_timer            / magnet_time, 0..1
@@ -29,7 +29,7 @@
  *      17 stumble_timer           seconds remaining, clipped to 1
  *      18 turn_input              -1 / 0 / +1
  *      19 dead                    0/1
- *      20 piece type (piece_idx)  / 64, 0..1
+ *      20 piece type (piece_idx)  / 274, 0..1
  *      21 yaw (piece heading)     / pi, clipped -1..1
  *      22 end distance (seg_rem)  / 50, 0..1
  *      23 turn dir (current piece) -1 / 0 / +1
@@ -45,7 +45,7 @@
  *   [ 30.. 53] TR2_LOOK_PIECES (6) * TR2_OBS_PIECE (4)
  *      30+4k rel   (ps->s0 - s) / 100, 0..1
  *      31+4k yaw   ps->yaw_delta / pi, clipped -1..1
- *      32+4k type  piece_idx / 64, 0..1
+ *      32+4k type  piece_idx / 274, 0..1
  *      33+4k flags piece flags bitfield / 32, 0..1
  *
  *   [ 54..203] TR2_LOOK_OBST (10) * TR2_OBS_OBST (15)
@@ -127,7 +127,7 @@ static void tr2_observe(Env* env) {
     obs[idx++] = tr2_obs_norm(env->slide_timer, env->slide_duration_cap);
     obs[idx++] = tr2_obs_norm(env->speed, env->max_speed);
     obs[idx++] = tr2_obs_norm(env->s, 5000.0f);
-    obs[idx++] = tr2_obs_norm(env->score, 5000.0f);
+    obs[idx++] = tr2_obs_norm(env->score, 100000.0f);
     obs[idx++] = tr2_obs_norm((float)env->coins, 200.0f);
     obs[idx++] = env->multiplier_max > 0
         ? tr2_obs_norm((float)env->multiplier, (float)env->multiplier_max)
@@ -141,7 +141,7 @@ static void tr2_observe(Env* env) {
     obs[idx++] = tr2_obs_clip(env->stumble_timer);
     obs[idx++] = (float)env->turn_input;
     obs[idx++] = (float)(env->dead != 0);
-    obs[idx++] = tr2_obs_norm((float)seg->piece_idx, 64.0f);
+    obs[idx++] = tr2_obs_norm((float)seg->piece_idx, (float)TR2_PIECE_COUNT);
     obs[idx++] = tr2_obs_clip(seg->heading / 3.14159265358979323846f);
     obs[idx++] = tr2_obs_norm(seg_rem, 50.0f);
     obs[idx++] = (float)seg->turn;
@@ -161,7 +161,7 @@ static void tr2_observe(Env* env) {
         Tr2Segment* ps = &env->segments[(env->seg_idx + k) % TR2_SEG_RING];
         obs[idx++] = tr2_obs_norm(ps->s0 - env->s, 100.0f);
         obs[idx++] = tr2_obs_clip(ps->yaw_delta / 3.14159265358979323846f);
-        obs[idx++] = tr2_obs_norm((float)ps->piece_idx, 64.0f);
+        obs[idx++] = tr2_obs_norm((float)ps->piece_idx, (float)TR2_PIECE_COUNT);
         obs[idx++] = tr2_obs_piece_flags(ps) / 32.0f;
     }
 

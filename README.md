@@ -47,6 +47,21 @@ penalty for swiping itself** (`swipe_cost = 0`); deaths and collisions are penal
 while obstacle clears and coin pickups are rewarded. Distance, powerups and turns affect
 the in-game *score* but add no RL reward. Values live in `config/templerun2.ini`.
 
+### In-game score (shipped parity)
+
+The reported score now follows the decompiled shipping rule instead of
+`distance + coins`:
+
+```
+score = M * (whole_metres + coin_credit + 500 * floor(coins / 100)
+             + 500 * floor(coins / 200) + 500 * score_bonus_pickups)
+```
+
+`M` is loaded once at run start (`ObjectivesManager.BaseScoreMultiplier = 10`,
+plus objectives/artifacts in the real game). The default here is `M = 10`
+(`score_multiplier`). Fractional metres carry between frames; coin values are
+1/2/3 with mega coins worth 50. This is a reporting metric, not an RL reward.
+
 ## Requirements
 
 Training on Apple Metal is **Apple Silicon only**:

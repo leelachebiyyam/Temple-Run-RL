@@ -65,6 +65,10 @@ pacing tables and trigger volumes.
   Its trigger exempts rising jump entry on non-turn pieces, riding and
   invincibility; shields do not protect against water. Continuous overlap
   does not replay the entry event when the runner starts descending.
+- **Score:** shipped parity. Score is `M × (whole metres + coin credit + 500
+  events)` with `M = 10` at run start (objectives/artifacts out of scope). Every
+  100 coins and every 200-coin power-meter fill add `500 × M`; score-bonus
+  pickups add `500 × M`. Fractional metres carry between frames.
 - **Items:** coin values 1/2/3 at 0/2500/5000, mega 50, magnet 10 s/√1200,
   gem +1, score formulas from shipped data.
 

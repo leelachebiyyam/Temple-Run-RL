@@ -31,6 +31,12 @@
 #define TR2_COIN_MEGA 50
 #define TR2_COIN_BONUS_COINS 50
 #define TR2_SCORE_BONUS_POINTS 500.0f
+/* TRRunnerPawn: +500 score per 100 coins (CoinCountForBonusThreshold) and per
+ * power-meter fill (GetCoinMeterFillCount default 200). */
+#define TR2_COIN_STREAK_COINS 100
+#define TR2_COIN_STREAK_POINTS 500
+#define TR2_COIN_METER_COINS 200
+#define TR2_COIN_METER_POINTS 500
 
 
 /* Coin worth.  1/2/3 is what the generator stamped into coin->value using the
@@ -63,21 +69,31 @@ static void tr2_apply_powerup(Env* env, int kind) {
         env->coins += TR2_COIN_BONUS_COINS;
         break;
     case TR2_PU_SCORE_BONUS:
-        env->score += TR2_SCORE_BONUS_POINTS;
+        env->score += (float)env->multiplier * TR2_SCORE_BONUS_POINTS;
         break;
     default:
         break;
     }
 }
 
-/* The runner's coin multiplier (TRGameRunner.AddCoinsToScore) scales both the
- * coin count and the score. */
+/* TRGameRunner.AddCoinsToScore: the multiplier applies to the coin credit, and
+ * coin counts feed the +500 streak and power-meter bonuses. */
 static void tr2_collect_coin(Env* env, Tr2Coin* coin) {
     int value = tr2_item_value(coin);
     int mult = env->multiplier > 0 ? env->multiplier : 1;
     coin->active = 0;
     env->coins += value;
     env->score += env->score_coin * (float)value * (float)mult;
+    env->coins_for_bonus += value;
+    while (env->coins_for_bonus >= TR2_COIN_STREAK_COINS) {
+        env->coins_for_bonus -= TR2_COIN_STREAK_COINS;
+        env->score += (float)(mult * TR2_COIN_STREAK_POINTS);
+    }
+    env->coins_for_meter += value;
+    while (env->coins_for_meter >= TR2_COIN_METER_COINS) {
+        env->coins_for_meter -= TR2_COIN_METER_COINS;
+        env->score += (float)(mult * TR2_COIN_METER_POINTS);
+    }
     float reward = env->reward_coin * (float)value;
     env->agents[0].rewards[0] += reward;
     env->episode_return += reward;
@@ -86,7 +102,9 @@ static void tr2_collect_coin(Env* env, Tr2Coin* coin) {
 static void tr2_items_reset(Env* env) {
     env->coins = 0;
     env->gems = 0;
-    env->multiplier = 1;
+    env->coins_for_bonus = 0;
+    env->coins_for_meter = 0;
+    env->multiplier = env->score_multiplier > 0 ? env->score_multiplier : 10;
     env->magnet_timer = 0.0f;
     env->shield_timer = 0.0f;
     env->boost_distance_left = 0.0f;

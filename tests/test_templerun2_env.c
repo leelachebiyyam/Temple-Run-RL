@@ -1162,6 +1162,42 @@ static void test_water_jump_entry(void) {
     printf("ok water rising entry, continuous overlap and descending re-entry\n");
 }
 
+/* Shipped scoring parity: multiplier 10, coin credit at M, +500*M per 100
+ * coins and per 200-coin power-meter fill. */
+static void test_score_parity(void) {
+    Harness h;
+    harness_init(&h, 3);
+    clear_all(&h);
+    assert(h.env.multiplier == 10);
+    Tr2Coin c = {0};
+    c.value = 1;
+    h.env.score = 0.0f;
+    h.env.coins_for_bonus = 99;
+    h.env.coins_for_meter = 0;
+    tr2_collect_coin(&h.env, &c);
+    assert(fabsf(h.env.score - (10.0f + 5000.0f)) < 1e-3f);
+
+    h.env.score = 0.0f;
+    h.env.coins_for_bonus = 0;
+    h.env.coins_for_meter = 199;
+    c.active = 1;
+    tr2_collect_coin(&h.env, &c);
+    assert(fabsf(h.env.score - (10.0f + 5000.0f)) < 1e-3f);
+
+    /* Whole metres score at M; fractional metres carry. */
+    Harness d;
+    harness_init(&d, 5);
+    clear_track_hazards(&d);
+    for (int i = 0; i < 180; ++i) {
+        clear_track_hazards(&d);
+        d.action = TR2_ACT_NONE;
+        puf_step(&d.env);
+    }
+    float whole = floorf(d.env.distance);
+    assert(fabsf(d.env.score - 10.0f * whole) <= 20.0f);
+    printf("ok shipped score parity (M=10, distance, coin and +500 events)\n");
+}
+
 /* A zipline is caught by jumping; walking into it misses the rope and falls.
  * While attached the runner hangs at rope height instead of running on air. */
 static void test_zipline_grab_and_hang(void) {
@@ -1266,6 +1302,7 @@ int main(void) {
     test_obs_contract();
     test_obstacle_geometry_observation();
     test_water_jump_entry();
+    test_score_parity();
     test_zipline_grab_and_hang();
     test_water_duck_under();
     test_water_slide_chain();

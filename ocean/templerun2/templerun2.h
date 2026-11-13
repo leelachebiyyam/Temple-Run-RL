@@ -63,6 +63,9 @@ static void tr2_config(Env* env, Dict* kwargs) {
     env->score_coin = tr2_cfg(kwargs, "score_coin", 1.0f);
     env->multiplier_m = tr2_cfg(kwargs, "multiplier_m", 0.0f);
     env->multiplier_max = (int)tr2_cfg(kwargs, "multiplier_max", 1.0f);
+    /* ObjectivesManager.BaseScoreMultiplier in the shipped build. */
+    env->score_multiplier = (int)tr2_cfg(kwargs, "score_multiplier", 10.0f);
+    if (env->score_multiplier < 1) env->score_multiplier = 10;
     env->reward_clear = tr2_cfg(kwargs, "reward_clear", 0.125f);
     env->reward_coin = tr2_cfg(kwargs, "reward_coin", 0.01875f);
     env->swipe_cost = tr2_cfg(kwargs, "swipe_cost", 0.0f);

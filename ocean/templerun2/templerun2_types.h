@@ -277,6 +277,10 @@ struct Env {
 
     float distance;
     float score;
+    float score_remainder;   /* fractional metre carried between frames */
+    int coins_for_bonus;     /* 0..99, +500 every 100 coins */
+    int coins_for_meter;     /* 0..199, +500 every 200 coins */
+    int score_multiplier;    /* shipped constant: 10 + objectives + artifacts */
     int coins;
     int gems;
     int multiplier;

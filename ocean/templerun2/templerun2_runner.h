@@ -116,18 +116,11 @@ static float tr2_runner_slide_duration(Env* env) {
     }
 }
 
-/* Shipped runs hold multiplier x1 (objectives/upgrades are out of scope); the
- * distance ramp stays available through multiplier_m for reward shaping. */
+/* TRGameRunner loads Stats.ScoreMultiplier once at run start from
+ * GameProfile.GetScoreMultiplier(): base 10 plus objectives/artifacts.  It
+ * does not ramp with distance, so the run keeps a single constant. */
 static void tr2_runner_update_multiplier(Env* env) {
-    if (env->multiplier_m <= 0.0f) {
-        env->multiplier = 1;
-        return;
-    }
-    int m = 1 + (int)(env->s / env->multiplier_m);
-    if (m < 1) m = 1;
-    if (env->multiplier_max > 0 && m > env->multiplier_max)
-        m = env->multiplier_max;
-    env->multiplier = m;
+    env->multiplier = env->score_multiplier > 0 ? env->score_multiplier : 10;
 }
 
 /* The piece under the runner selects the state (Tr2Segment.mode).  A dropped
@@ -228,7 +221,10 @@ static void tr2_runner_reset(Env* env) {
     env->death_cause = TR2_DEATH_NONE;
     env->distance = 0.0f;
     env->score = 0.0f;
-    env->multiplier = 1;
+    env->score_remainder = 0.0f;
+    env->coins_for_bonus = 0;
+    env->coins_for_meter = 0;
+    env->multiplier = env->score_multiplier > 0 ? env->score_multiplier : 10;
     env->episode_return = 0.0f;
     env->tick = 0;
     if (env->agents[0].rewards != NULL) env->agents[0].rewards[0] = 0.0f;
@@ -397,8 +393,14 @@ static void tr2_runner_step(Env* env) {
 
         tr2_runner_update_multiplier(env);
         {
-            int mult = env->multiplier > 0 ? env->multiplier : 1;
-            env->score += ds * env->score_distance * (float)mult;
+            /* UpdateStats: whole metres are scored at the run multiplier and
+             * the fractional remainder carries to the next frame. */
+            env->score_remainder += ds * env->score_distance;
+            int metres = (int)env->score_remainder;
+            if (metres > 0) {
+                env->score_remainder -= (float)metres;
+                env->score += (float)(env->multiplier * metres);
+            }
         }
 
         if (env->boost_distance_left > 0.0f) {
